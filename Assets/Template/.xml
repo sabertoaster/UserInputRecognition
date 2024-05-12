@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Gesture>
+  <Sample Samples="32" />
+  <Size Size="NaN" />
+  <Templates>
+    <Point x="NaN" y="0" />
+  </Templates>
+  <Start_End>
+    <Start StartPos_x="NaN" StartPos_y="0" />
+    <End EndPos_x="NaN" EndPos_y="0" />
+  </Start_End>
+</Gesture>
