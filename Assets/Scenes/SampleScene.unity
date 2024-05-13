@@ -67,6 +67,9 @@ LightmapSettings:
     m_LightmapParameters: {fileID: 0}
     m_LightmapsBakeMode: 1
     m_TextureCompression: 1
+    m_FinalGather: 0
+    m_FinalGatherFiltering: 1
+    m_FinalGatherRayCount: 256
     m_ReflectionCompression: 2
     m_MixedBakeMode: 2
     m_BakeBackend: 0
@@ -1414,7 +1417,7 @@ LineRenderer:
       serializedVersion: 2
       m_Curve:
       - serializedVersion: 3
-        time: 0
+        time: 0.065770075
         value: 1
         inSlope: 0
         outSlope: 0
@@ -2045,13 +2048,14 @@ MonoBehaviour:
   coordList: []
   normalizedList: []
   resampleList: []
+  enrichList: []
   minDistance: 0.1
   phi: 0
   isRecording: 0
-  isDraw: 0
+  isDraw: 1
   fileName: 
   textFile: {fileID: 199595205}
-  nSamples: 32
+  nSamples: 128
   boxSize: 5
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

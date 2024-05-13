@@ -16,6 +16,7 @@ public class MouseVectorize : MonoBehaviour
     public List<Vector2> coordList = new List<Vector2>();
     public List<Vector2> normalizedList = new List<Vector2>();
     public List<Vector2> resampleList = new List<Vector2>();
+    public List<Vector2> enrichList = new List<Vector2>();
     public float minDistance = 0.0001f;
     public float phi = 1 / 2 * (-1 + Mathf.Sqrt(5));
     public bool isRecording = false;
@@ -24,7 +25,7 @@ public class MouseVectorize : MonoBehaviour
 
     public string fileName = "";
     public TextMeshProUGUI textFile;
-    public int nSamples = 32;
+    public int nSamples = 128;
     public int boxSize = 5;
     private void Start()
     {
@@ -32,68 +33,30 @@ public class MouseVectorize : MonoBehaviour
         isDraw = false;
     }
 
-    private void FixedUpdate()
+    private void Update()
     {
-        if (isRecording)
+
+        if (Input.GetMouseButtonDown(0))
         {
-            if (Input.GetMouseButtonDown(0))
-            {
-                currentPoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-                coordList.Clear();
-                coordList.Add(currentPoint);
-            }
-
-            if (Input.GetMouseButton(0))
-            {
-                Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-                if ((coordList[^1] - mousePos).magnitude > minDistance)
-                {
-                    coordList.Add(mousePos);
-                }
-
-                // visualize
-                lineRenderer.positionCount = coordList.Count;
-                for (int i = 0; i < coordList.Count; i++)
-                {
-                    lineRenderer.SetPosition(i, coordList[i] - currentPoint);
-                }
-            }
-            if (Input.GetMouseButtonUp(0))
-            {
-                resampleList = Resample(coordList, nSamples); // Take sample depends on the situation
-                var bbox = boundingBox(resampleList);
-                var squarePoints = scaleToSquare(resampleList, boxSize);
-                var centralizedPoints = translate2origin(squarePoints);
-
-                // visualize
-                pointRenderer.positionCount = centralizedPoints.Count;
-                for (int i = 0; i < centralizedPoints.Count; i++)
-                {
-                    pointRenderer.SetPosition(i, centralizedPoints[i]);
-                }
-                drawBoundingBox(bbox);
-                Template template = new Template(fileName, nSamples, boxSize, centralizedPoints);
-                template.saveToXML("Assets/Template");
-            }
-            return;
+            currentPoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            coordList = new List<Vector2>();
+            coordList.Add(currentPoint);
+            print(coordList.Count);
+            lineRenderer.positionCount = 0;
+            pointRenderer.positionCount = 0;
+            lineRenderer.SetPositions(new Vector3[] { Vector3.zero, Vector3.zero });
+            pointRenderer.SetPositions(new Vector3[] { Vector3.zero, Vector3.zero });
         }
-        if (isDraw)
+
+        if (Input.GetMouseButton(0))
         {
-            if (Input.GetMouseButtonDown(0))
+            Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            if ((coordList[^1] - mousePos).magnitude > minDistance)
             {
-                currentPoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-                coordList.Clear();
-                coordList.Add(currentPoint);
+                coordList.Add(mousePos);
             }
 
-            if (Input.GetMouseButton(0))
-            {
-                Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-                if ((coordList[^1] - mousePos).magnitude > minDistance)
-                {
-                    coordList.Add(mousePos);
-                }
-
+            if (coordList.Count > 1) { // Handle visualize ngu
                 // visualize
                 lineRenderer.positionCount = coordList.Count;
                 for (int i = 0; i < coordList.Count; i++)
@@ -101,32 +64,56 @@ public class MouseVectorize : MonoBehaviour
                     lineRenderer.SetPosition(i, coordList[i] - currentPoint);
                 }
             }
-            if (Input.GetMouseButtonUp(0))
-            {
-                resampleList = Resample(coordList, nSamples); // Take sample depends on the situation
+            
+        }
+        if (Input.GetMouseButtonUp(0))
+        {
+            if (coordList.Count > 1) { 
+                enrichList = Enrich(coordList, nSamples);
+                resampleList = Resample(enrichList, nSamples); // Take sample depends on the situation
                 var squarePoints = scaleToSquare(resampleList, boxSize);
                 var centralizedPoints = translate2origin(squarePoints);
                 // visualize
                 var bbox = boundingBox(centralizedPoints);
-                pointRenderer.positionCount = centralizedPoints.Count;
+                lineRenderer.positionCount = centralizedPoints.Count;
                 for (int i = 0; i < centralizedPoints.Count; i++)
                 {
-                    pointRenderer.SetPosition(i, centralizedPoints[i]);
+                    lineRenderer.SetPosition(i, centralizedPoints[i]);
                 }
                 drawBoundingBox(bbox);
-                var listOfTemplates = loadAllTemplate("Assets\\Template");
-                var result = Recognize(centralizedPoints, listOfTemplates);
-                print("Ten la: " + result.Key.XMLpath + "\n" + "So diem du doan la: " + Math.Round(result.Value, 3).ToString());
-                if (result.Value < 0.2f)
-                {
-                    textFile.text = "Khong co hinh nay trong Database";
+
+
+                // Save template
+                if (isRecording) {
+                    Template template = new Template(fileName, nSamples, boxSize, centralizedPoints);
+                    template.saveToXML("Assets/Template");
+                    return;
                 }
-                else
-                {
-                    textFile.text = "Ten la: " + result.Key.XMLpath + "\n" + "So diem du doan la: " + Math.Round(result.Value, 3).ToString();
-                }
+                // Predict 
+                if (isDraw) {
+                    var listOfTemplates = loadAllTemplate("Assets\\Template");
+                    var result = Recognize(centralizedPoints, listOfTemplates);
+                    print("Ten la: " + result.Key.XMLpath + "\n" + "So diem du doan la: " + Math.Round(result.Value, 3).ToString());
+                    if (result.Value < 0.2f)
+                    {
+                        textFile.text = "Khong co hinh nay trong Database";
+                    }
+                    else
+                    {
+                        textFile.text = "Ten la: " + result.Key.XMLpath + "\n" + "So diem du doan la: " + Math.Round(result.Value, 3).ToString();
+                    }
+                }            
             }
+            // coordList = new List<Vector2>();
+            // lineRenderer.positionCount = 0;
+            // pointRenderer.positionCount = 0;
+            // lineRenderer.SetPositions(new Vector3[] { Vector3.zero, Vector3.zero });
+            // pointRenderer.SetPositions(new Vector3[] { Vector3.zero, Vector3.zero });
         }
+    }
+
+    IEnumerator Wait() {
+        yield return new WaitForSecondsRealtime(100);
     }
 
     [SerializeField]
@@ -159,6 +146,25 @@ public class MouseVectorize : MonoBehaviour
     //}
 
     // Step 1
+    public List<Vector2> Enrich(List<Vector2> points, int n)
+    {
+        var newPoints = new List<Vector2>();
+        int points_per_line = (int)(n / points.Count) + 1;
+        newPoints.Add(points[0]);
+        for (int i = 1; i < points.Count; i++ )
+        {
+            float length = (points[i] - points[i-1]).magnitude;
+            float distance = length / (points_per_line + 1 );
+            for (int j = 1; j <= points_per_line + 1; j++)
+            {
+                var p = new Vector2();
+                p.x = points[i - 1].x + (points[i] - points[i - 1]).x*(j * distance/length);
+                p.y = points[i - 1].y + (points[i] - points[i - 1]).y*(j * distance/length);
+                newPoints.Add(p);
+            }
+        }
+        return newPoints;
+    }
     public float pathLength(List<Vector2> vector2s)
     {
         float d = 0;
@@ -249,7 +255,7 @@ public class MouseVectorize : MonoBehaviour
         Template result = new Template("input", nSamples, boxSize, points);
         foreach (var template in templates)
         {
-            d = distanceAtBestAngle(points, template, -45, 45, 2); // Implement theo paper
+            d = distanceAtBestAngle(points, template, -0, 0, 0); // Implement theo paper
             if (d < b)
             {
                 b = d;
@@ -290,7 +296,7 @@ public class MouseVectorize : MonoBehaviour
 
     public float distanceAtAngle(List<Vector2> points, Template template, float theta)
     {
-        List<Vector2> newPoints = rotateBy(points, theta);
+        List<Vector2> newPoints = rotateToZero(points);
         float d = pathDistance(newPoints, template.templatePoints);
         template.templatePoints.Reverse();
         float dv = pathDistance(newPoints, template.templatePoints); // Make both head and ends
@@ -336,12 +342,12 @@ public class MouseVectorize : MonoBehaviour
         var bottomRight = bbox[1];
         var topRight = new Vector2(bottomRight.x, topLeft.y);
         var bottomLeft = new Vector2(topLeft.x, bottomRight.y);
-        lineRenderer.positionCount = 5;
-        lineRenderer.SetPosition(0, topLeft);
-        lineRenderer.SetPosition(1, topRight);
-        lineRenderer.SetPosition(2, bottomRight);
-        lineRenderer.SetPosition(3, bottomLeft);
-        lineRenderer.SetPosition(4, topLeft);
+        pointRenderer.positionCount = 5;
+        pointRenderer.SetPosition(0, topLeft);
+        pointRenderer.SetPosition(1, topRight);
+        pointRenderer.SetPosition(2, bottomRight);
+        pointRenderer.SetPosition(3, bottomLeft);
+        pointRenderer.SetPosition(4, topLeft);
     }
 
     public List<Template> loadAllTemplate(string path)
@@ -384,20 +390,6 @@ public class MouseVectorize : MonoBehaviour
                                     templatePoints.Add(p);
                                 }
                             }
-                            // if (element.Name == "Start_End")
-                            // {
-                            //     foreach (XElement pos in element.Elements())
-                            //     {
-                            //         if (pos.Name == "Start")
-                            //         {
-                            //             startPos = new Vector2(float.Parse(pos.Attribute("StartPos_x").Value), float.Parse(pos.Attribute("StartPos_y").Value));
-                            //         }
-                            //         if (pos.Name == "End")
-                            //         {
-                            //             endPos = new Vector2(float.Parse(pos.Attribute("EndPos_x").Value), float.Parse(pos.Attribute("EndPos_y").Value));
-                            //         }
-                            //     }
-                            //}
                         }
                     }
                     listTemplates.Add(new Template(nameFile, nSamples, rescaleSize, templatePoints));
@@ -415,64 +407,5 @@ public class MouseVectorize : MonoBehaviour
             return listTemplates;
         }
     }
-
-    //private void Update()
-    //{
-    //    if (Input.GetMouseButtonDown(0))
-    //    {
-    //        currentPoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-    //        deltaList.Clear();
-    //    }
-
-    //    if (Input.GetMouseButton(0))
-    //    {
-    //        Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-    //        var delta = mousePos - currentPoint;
-    //        deltaList.Add(delta);
-
-    //        // visualize
-    //        lineRenderer.positionCount = deltaList.Count;
-    //        for (int i = 0; i < deltaList.Count; i++)
-    //        {
-    //            lineRenderer.SetPosition(i, deltaList[i]);
-    //        }
-    //    }
-
-    //    if (Input.GetMouseButtonUp(0))
-    //    {
-    //        Preprocess();
-    //    }
-    //}
-
-    //public void Preprocess()
-    //{
-    //    List<Vector2> newDeltaList = new List<Vector2>();
-    //    Vector2 lastDelta = Vector2.zero;
-    //    float totalCurrentDistance = 0;
-    //    for (int i = 0; i < deltaList.Count - 1; i++)
-    //    {
-    //        Vector2 checking = deltaList[i + 1] - deltaList[i];
-    //        lastDelta += checking;
-    //        totalCurrentDistance += checking.magnitude;
-    //        if (totalCurrentDistance >= minDistance)
-    //        {
-    //            newDeltaList.Add(lastDelta);
-    //            lastDelta = Vector2.zero;
-    //            totalCurrentDistance = 0;
-    //        }
-    //        else
-    //        {
-    //            lastDelta += checking;
-    //        }
-    //    }
-    //    // visualize
-    //    lineRenderer.positionCount = newDeltaList.Count;
-    //    for (int i = 0; i < newDeltaList.Count; i++)
-    //    {
-    //        lineRenderer.SetPosition(i, newDeltaList[i]);
-    //    }
-    //    print(newDeltaList.Count);
-    //}
-
 
 }
