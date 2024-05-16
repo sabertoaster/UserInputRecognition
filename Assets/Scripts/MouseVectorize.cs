@@ -103,13 +103,13 @@ public class MouseVectorize : MonoBehaviour
                     else
                     {
                     int n = templatePoints.Count;
+                    List<Vector2> savePoints = new List<Vector2>();
                     for (int i = 0; i < n; i++)
                     {
-                        templatePoints[i].x = templatePoints[i].x / num_of_templatePoints;
-                        templatePoints[i].y = templatePoints[i].y / num_of_templatePoints;
+                        savePoints.Add(new Vector2(templatePoints[i].x / num_of_templatePoints,templatePoints[i].y / num_of_templatePoints ));
 
                     }
-                    Template template = new Template(fileName, nSamples, boxSize, templatePoints);
+                    Template template = new Template(fileName, nSamples, boxSize, savePoints);
                     template.saveToXML("Assets/Template");
                     return;
                     }
