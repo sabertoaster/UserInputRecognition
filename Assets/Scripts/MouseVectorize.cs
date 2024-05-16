@@ -17,6 +17,9 @@ public class MouseVectorize : MonoBehaviour
     public List<Vector2> normalizedList = new List<Vector2>();
     public List<Vector2> resampleList = new List<Vector2>();
     public List<Vector2> enrichList = new List<Vector2>();
+    public List<Vector2> centralizedPoints = new List<Vector2>();
+    public List<Vector2> templatePoints = new List<Vector2>();
+    public int num_of_templatePoints = 0 ;
     public float minDistance = 0.0001f;
     public float phi = 1 / 2 * (-1 + Mathf.Sqrt(5));
     public bool isRecording = false;
@@ -31,6 +34,10 @@ public class MouseVectorize : MonoBehaviour
     {
         isRecording = false;
         isDraw = false;
+        for (int i = 0; i < 127; i++)
+        {
+            templatePoints.Add(new Vector2(0,0));
+        }
     }
 
     private void Update()
@@ -72,7 +79,7 @@ public class MouseVectorize : MonoBehaviour
                 enrichList = Enrich(coordList, nSamples);
                 resampleList = Resample(enrichList, nSamples); // Take sample depends on the situation
                 var squarePoints = scaleToSquare(resampleList, boxSize);
-                var centralizedPoints = translate2origin(squarePoints);
+                centralizedPoints = translate2origin(squarePoints);
                 // visualize
                 var bbox = boundingBox(centralizedPoints);
                 lineRenderer.positionCount = centralizedPoints.Count;
@@ -82,12 +89,30 @@ public class MouseVectorize : MonoBehaviour
                 }
                 drawBoundingBox(bbox);
 
-
                 // Save template
                 if (isRecording) {
-                    Template template = new Template(fileName, nSamples, boxSize, centralizedPoints);
+                    num_of_templatePoints += 1;
+                    templatePoints = getSumPoint(templatePoints, centralizedPoints);
+                }
+                else 
+                {
+                    if (templatePoints[0].x  == 0 && templatePoints[0].y == 0)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                    int n = templatePoints.Count;
+                    for (int i = 0; i < n; i++)
+                    {
+                        templatePoints[i].x = templatePoints[i].x / num_of_templatePoints;
+                        templatePoints[i].y = templatePoints[i].y / num_of_templatePoints;
+
+                    }
+                    Template template = new Template(fileName, nSamples, boxSize, templatePoints);
                     template.saveToXML("Assets/Template");
                     return;
+                    }
                 }
                 // Predict 
                 if (isDraw) {
@@ -407,5 +432,22 @@ public class MouseVectorize : MonoBehaviour
             return listTemplates;
         }
     }
-
+    public List<Vector2> getSumPoint(List<Vector2> oldPoints, List<Vector2> newPoints)
+    {
+        List<Vector2> points = new List<Vector2>();
+        int n = 0;
+        if (oldPoints.Count <= newPoints.Count)
+        {
+            n = oldPoints.Count;
+        }
+        else
+        {
+            n = newPoints.Count;
+        }
+        for (int i = 0; i < n; i++)
+        {
+            points.Add(oldPoints[i] + newPoints[i]);
+        }
+        return points;
+    }
 }
