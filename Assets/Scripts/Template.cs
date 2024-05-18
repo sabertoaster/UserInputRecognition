@@ -41,31 +41,31 @@ public class Template
 
     public void setSize(float rescaleSize, List<Vector2> templatePoints)
     {
-        List<Vector2> bbox = new List<Vector2>();
-        Vector2 minVector = new Vector2(0, 0);
-        Vector2 maxVector = new Vector2(0, 0);
-        foreach (Vector2 point in templatePoints)
-        {
-            if ((minVector.x == 0) || (point.x < minVector.x))
-            {
-                minVector.x = point.x;
-            }
-            if ((minVector.y == 0) || (point.y < minVector.x))
-            {
-                minVector.y = point.y;
-            }
-            if ((maxVector.x == 0) || (point.x > maxVector.x))
-            {
-                maxVector.x = point.x;
-            }
-            if ((maxVector.y == 0) || (point.y > maxVector.x))
-            {
-                maxVector.y = point.y;
-            }
-        }
-        bbox.Add(new Vector2(minVector.x, maxVector.y));
-        bbox.Add(new Vector2(maxVector.x, minVector.y));
-        rescaleSize = ((bbox[0] - bbox[1]).magnitude) / Mathf.Sqrt(2);
+        //List<Vector2> bbox = new List<Vector2>();
+        //Vector2 minVector = new Vector2(0, 0);
+        //Vector2 maxVector = new Vector2(0, 0);
+        //foreach (Vector2 point in templatePoints)
+        //{
+        //    if ((minVector.x == 0) || (point.x < minVector.x))
+        //    {
+        //        minVector.x = point.x;
+        //    }
+        //    if ((minVector.y == 0) || (point.y < minVector.x))
+        //    {
+        //        minVector.y = point.y;
+        //    }
+        //    if ((maxVector.x == 0) || (point.x > maxVector.x))
+        //    {
+        //        maxVector.x = point.x;
+        //    }
+        //    if ((maxVector.y == 0) || (point.y > maxVector.x))
+        //    {
+        //        maxVector.y = point.y;
+        //    }
+        //}
+        //bbox.Add(new Vector2(minVector.x, maxVector.y));
+        //bbox.Add(new Vector2(maxVector.x, minVector.y));
+        //rescaleSize = ((bbox[0] - bbox[1]).magnitude) / Mathf.Sqrt(2);
         XElement size = new XElement("Size");
         size.SetAttributeValue("Size", rescaleSize);
         doc.Root.Add(size);

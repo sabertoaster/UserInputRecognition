@@ -48,7 +48,7 @@ public class MouseVectorize : MonoBehaviour
             currentPoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             coordList = new List<Vector2>();
             coordList.Add(currentPoint);
-            print(coordList.Count);
+            //print(coordList.Count);
             lineRenderer.positionCount = 0;
             pointRenderer.positionCount = 0;
             lineRenderer.SetPositions(new Vector3[] { Vector3.zero, Vector3.zero });
@@ -78,7 +78,8 @@ public class MouseVectorize : MonoBehaviour
             if (coordList.Count > 1) { 
                 enrichList = Enrich(coordList, nSamples);
                 resampleList = Resample(enrichList, nSamples); // Take sample depends on the situation
-                var squarePoints = scaleToSquare(resampleList, boxSize);
+                var rotateTo0List = rotateToZero(resampleList);
+                var squarePoints = scaleToSquare(rotateTo0List, boxSize);
                 centralizedPoints = translate2origin(squarePoints);
                 // visualize
                 var bbox = boundingBox(centralizedPoints);
@@ -96,23 +97,24 @@ public class MouseVectorize : MonoBehaviour
                 }
                 else 
                 {
-                    if (templatePoints[0].x  == 0 && templatePoints[0].y == 0)
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                    int n = templatePoints.Count;
-                    List<Vector2> savePoints = new List<Vector2>();
-                    for (int i = 0; i < n; i++)
-                    {
-                        savePoints.Add(new Vector2(templatePoints[i].x / num_of_templatePoints,templatePoints[i].y / num_of_templatePoints ));
+                    //print(templatePoints[0]);
+                    //if (templatePoints[0].x  == 0 && templatePoints[0].y == 0)
+                    //{
+                    //    return;
+                    //}
+                    //else
+                    //{
+                    //int n = templatePoints.Count;
+                    //List<Vector2> savePoints = new List<Vector2>();
+                    //for (int i = 0; i < n; i++)
+                    //{
+                    //    savePoints.Add(new Vector2(templatePoints[i].x / num_of_templatePoints,templatePoints[i].y / num_of_templatePoints ));
 
-                    }
-                    Template template = new Template(fileName, nSamples, boxSize, savePoints);
-                    template.saveToXML("Assets/Template");
-                    return;
-                    }
+                    //}
+                    //Template template = new Template(fileName, nSamples, boxSize, savePoints);
+                    //template.saveToXML("Assets/Template");
+                    //return;
+                    //}
                 }
                 // Predict 
                 if (isDraw) {
@@ -145,6 +147,27 @@ public class MouseVectorize : MonoBehaviour
     public void onRecord()
     {
         isRecording = !isRecording;
+        if (!isRecording)
+        {
+            print(templatePoints[0]);
+            if (templatePoints[0].x == 0 && templatePoints[0].y == 0)
+            {
+                return;
+            }
+            else
+            {
+                int n = templatePoints.Count;
+                List<Vector2> savePoints = new List<Vector2>();
+                for (int i = 0; i < n; i++)
+                {
+                    savePoints.Add(new Vector2(templatePoints[i].x / num_of_templatePoints, templatePoints[i].y / num_of_templatePoints));
+
+                }
+                Template template = new Template(fileName, nSamples, boxSize, savePoints);
+                template.saveToXML("Assets/Template");
+                return;
+            }
+        }
     }
     [SerializeField]
     public void onDraw()
@@ -155,6 +178,24 @@ public class MouseVectorize : MonoBehaviour
     public void getFileName(string s)
     {
         fileName = s;
+    }
+    [SerializeField]
+    public void showAll()
+    {
+        var templates = loadAllTemplate("Assets\\Template");
+        Vector2 startPos = new Vector2(-boxSize, 0);
+        foreach (Template template in templates)
+        {
+            startPos.x += boxSize;
+            LineRenderer clone = Instantiate(lineRenderer, this.transform);
+            // visualize
+            clone.positionCount = template.templatePoints.Count;
+            for (int i = 0; i < template.templatePoints.Count; i++)
+            {
+                clone.SetPosition(i, template.templatePoints[i] + startPos);
+            }
+        }
+
     }
 
     //public List<Vector2> normalizePoints(List<Vector2> vector2s)
@@ -280,7 +321,7 @@ public class MouseVectorize : MonoBehaviour
         Template result = new Template("input", nSamples, boxSize, points);
         foreach (var template in templates)
         {
-            d = distanceAtBestAngle(points, template, -0, 0, 0); // Implement theo paper
+            d = distanceAtBestAngle(points, template, -(float)Math.PI / 4, (float)Math.PI / 4, (float)Math.PI/180); // Implement theo paper
             if (d < b)
             {
                 b = d;
@@ -321,7 +362,7 @@ public class MouseVectorize : MonoBehaviour
 
     public float distanceAtAngle(List<Vector2> points, Template template, float theta)
     {
-        List<Vector2> newPoints = rotateToZero(points);
+        List<Vector2> newPoints = rotateBy(points, theta);
         float d = pathDistance(newPoints, template.templatePoints);
         template.templatePoints.Reverse();
         float dv = pathDistance(newPoints, template.templatePoints); // Make both head and ends
@@ -332,7 +373,8 @@ public class MouseVectorize : MonoBehaviour
     public float pathDistance(List<Vector2> pointA, List<Vector2> pointB)
     {
         float d = 0f;
-        for (int i = 0; i < pointA.Count; i++)
+        var numPoint = Math.Min(pointB.Count, pointA.Count);
+        for (int i = 0; i < numPoint; i++)
         {
             d += (pointB[i] - pointA[i]).magnitude;
         }
